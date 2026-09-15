@@ -24,10 +24,12 @@ jobs:
         with:
           flutter-version: '3.24.x'
           channel: 'stable'
+          cache: true
 
-      - name: Instalar dependencias Flutter
+      - name: Inicializar y regenerar archivos Android de Flutter
         run: |
           cd flutter_app
+          flutter create . --platforms android --org com.yape
           flutter pub get
 
       - name: Compilar APK (Release)
@@ -35,8 +37,8 @@ jobs:
           cd flutter_app
           flutter build apk --release
 
-      - name: Subir APK generado como Artefacto
+      - name: Subir APK generado
         uses: actions/upload-artifact@v4
         with:
-          name: yape-sync-emisor-apk
+          name: yape-sync-apk
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
