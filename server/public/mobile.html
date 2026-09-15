@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Yape Receptor</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#742284">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #742284;
+      --accent: #00D09C;
+      --bg: #0F0E17;
+      --surface: #1B1926;
+      --border: #2A273C;
+      --text: #FFFFFE;
+      --text-muted: #A7A9BE;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(27, 25, 38, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--primary), #9B30B4);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .status-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 100px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 208, 156, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(0, 208, 156, 0.3);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    /* Content */
+    .content {
+      flex: 1;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* Big Card Total */
+    .total-card {
+      background: linear-gradient(135deg, var(--primary) 0%, #4D1259 100%);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(116, 34, 132, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .total-card-label {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .total-card-amount {
+      font-size: 38px;
+      font-weight: 900;
+      color: #00FFBE;
+      margin: 8px 0;
+      letter-spacing: -1px;
+    }
+
+    .total-card-sub {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    /* Audio Toggle Bar */
+    .controls-bar {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-control {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .btn-control.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(0, 208, 156, 0.08);
+    }
+
+    /* Payments Feed */
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .feed-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .feed-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      animation: popIn 0.3s ease;
+    }
+
+    .feed-item.new-item {
+      border-color: var(--accent);
+      box-shadow: 0 0 15px rgba(0, 208, 156, 0.2);
+    }
+
+    .feed-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: rgba(116, 34, 132, 0.3);
+      color: #D38CF0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .feed-avatar.plin {
+      background: rgba(0, 163, 224, 0.3);
+      color: #64D2FF;
+    }
+
+    .feed-info h4 {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .feed-info p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .feed-amount {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--accent);
+      text-align: right;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+      background: var(--surface);
+      border-radius: 14px;
+      border: 1px dashed var(--border);
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <div class="brand">
+      <div class="brand-icon">Y</div>
+      <span class="brand-title">Receptor Yape</span>
+    </div>
+    <div id="statusPill" class="status-pill">
+      <div class="status-dot"></div>
+      <span id="statusLabel">Conectado</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Big Summary Card -->
+    <div class="total-card">
+      <div class="total-card-label">Total Cobrado Hoy</div>
+      <div id="totalDisplay" class="total-card-amount">S/ 0.00</div>
+      <div id="countDisplay" class="total-card-sub">0 pagos confirmados</div>
+    </div>
+
+    <!-- Controls (Sound & Screen) -->
+    <div class="controls-bar">
+      <button id="btnSound" class="btn-control active" onclick="toggleSound()">
+        🔊 Sonido Activado
+      </button>
+      <button id="btnWakeLock" class="btn-control" onclick="toggleWakeLock()">
+        📱 Mantener Pantalla Encendida
+      </button>
+    </div>
+
+    <!-- Feed -->
+    <div class="section-title">
+      <span>Últimos Pagos en Vivo</span>
+      <span id="channelLabel" style="font-size: 12px; color: var(--text-muted);">Canal: tienda_principal</span>
+    </div>
+
+    <div id="feedList" class="feed-list">
+      <div class="empty-state">
+        Esperando pagos en tiempo real...<br>
+        Las notificaciones sonarán al instante.
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Widget Integrado -->
+  <script src="/yape-toast.js" data-channel="tienda_principal" data-sound="true" data-position="top-right"></script>
+
+  <script>
+    let soundEnabled = true;
+    let wakeLock = null;
+    const feedList = document.getElementById('feedList');
+    const totalDisplay = document.getElementById('totalDisplay');
+    const countDisplay = document.getElementById('countDisplay');
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('btnSound');
+      if (soundEnabled) {
+        btn.classList.add('active');
+        btn.textContent = '🔊 Sonido Activado';
+      } else {
+        btn.classList.remove('active');
+        btn.textContent = '🔇 Sonido Silenciado';
+      }
+    }
+
+    async function toggleWakeLock() {
+      const btn = document.getElementById('btnWakeLock');
+      if (!wakeLock) {
+        try {
+          if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            btn.classList.add('active');
+            btn.textContent = '📱 Pantalla Fija: ON';
+            wakeLock.addEventListener('release', () => {
+              wakeLock = null;
+              btn.classList.remove('active');
+              btn.textContent = '📱 Mantener Pantalla Encendida';
+            });
+          } else {
+            alert('Tu navegador no soporta mantener la pantalla encendida automáticamente.');
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      } else {
+        wakeLock.release();
+        wakeLock = null;
+        btn.classList.remove('active');
+        btn.textContent = '📱 Mantener Pantalla Encendida';
+      }
+    }
+
+    function addPaymentToFeed(p, isNew = false) {
+      const empty = feedList.querySelector('.empty-state');
+      if (empty) empty.remove();
+
+      const isPlin = (p.app || '').toLowerCase().includes('plin');
+      const timeStr = new Date(p.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+
+      const item = document.createElement('div');
+      item.className = `feed-item ${isNew ? 'new-item' : ''}`;
+      item.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <div class="feed-avatar ${isPlin ? 'plin' : ''}">${isPlin ? 'P' : 'Y'}</div>
+          <div class="feed-info">
+            <h4>${p.sender || 'Cliente'}</h4>
+            <p>${p.app || 'Yape'} • ${timeStr}</p>
+          </div>
+        </div>
+        <div class="feed-amount">${p.formattedAmount || ('S/ ' + p.amount.toFixed(2))}</div>
+      `;
+
+      feedList.insertBefore(item, feedList.firstChild);
+
+      // Reproducir voz sintetizada opcional si el sonido está activado
+      if (isNew && soundEnabled && 'speechSynthesis' in window) {
+        try {
+          const msg = new SpeechSynthesisUtterance(`${p.app} recibido: ${p.amount} soles de ${p.sender}`);
+          msg.lang = 'es-PE';
+          msg.rate = 1.05;
+          window.speechSynthesis.speak(msg);
+        } catch(e) {}
+      }
+    }
+
+    const FIREBASE_BASE = 'https://yape-pagos-td-default-rtdb.firebaseio.com';
+
+    async function loadFirebaseData() {
+      try {
+        const res = await fetch(`${FIREBASE_BASE}/pagos.json?orderBy="$key"&limitToLast=20`);
+        const data = await res.json();
+        if (data && typeof data === 'object') {
+          const list = Object.values(data);
+          let todayTotal = 0;
+          let count = 0;
+          const todayStr = new Date().toISOString().split('T')[0];
+
+          feedList.innerHTML = '';
+          list.reverse().forEach(p => {
+            if (p.amount) {
+              addPaymentToFeed(p, false);
+              if (p.timestamp && p.timestamp.startsWith(todayStr)) {
+                todayTotal += parseFloat(p.amount) || 0;
+                count++;
+              }
+            }
+          });
+
+          totalDisplay.textContent = `S/ ${todayTotal.toFixed(2)}`;
+          countDisplay.textContent = `${count} pagos confirmados hoy`;
+        }
+      } catch (e) {
+        console.error('Error cargando historial de Firebase:', e);
+      }
+    }
+
+    window.addEventListener('yape:payment', (e) => {
+      addPaymentToFeed(e.detail, true);
+      // Actualizar total
+      const current = parseFloat(totalDisplay.textContent.replace('S/ ', '')) || 0;
+      const newTotal = current + (parseFloat(e.detail.amount) || 0);
+      totalDisplay.textContent = `S/ ${newTotal.toFixed(2)}`;
+    });
+
+    loadFirebaseData();
+  </script>
+</body>
+</html>

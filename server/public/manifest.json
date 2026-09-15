@@ -1,0 +1,17 @@
+{
+  "name": "Yape Monitor Receptor",
+  "short_name": "Yape Receptores",
+  "start_url": "/mobile.html",
+  "display": "standalone",
+  "background_color": "#0F0E17",
+  "theme_color": "#742284",
+  "description": "Receptor de pagos de Yape en tiempo real",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

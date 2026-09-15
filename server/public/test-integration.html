@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Sistema de Ventas / Facturación - Yape In-App Toast</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body {
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 30px 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .pos-card {
+      max-width: 800px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 16px;
+    }
+    .header h2 { font-size: 20px; color: #1e293b; }
+    .badge {
+      background: #e2e8f0;
+      color: #475569;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .badge.paid {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .order-details {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #e2e8f0;
+    }
+    .order-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .order-total {
+      display: flex;
+      justify-content: space-between;
+      font-size: 18px;
+      font-weight: 800;
+      border-top: 1px dashed #cbd5e1;
+      padding-top: 12px;
+      margin-top: 12px;
+      color: #0f172a;
+    }
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 12px 18px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-test {
+      background: #742284;
+      color: white;
+    }
+    .btn-test:hover {
+      background: #5b1a68;
+    }
+    .instructions {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 14px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #1e40af;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="pos-card">
+    <div class="header">
+      <div>
+        <h2>🛒 Sistema de Ventas POS</h2>
+        <p style="font-size: 13px; color: #64748b; margin-top: 2px;">Simulación de tu propio sistema o pantalla de caja</p>
+      </div>
+      <span id="orderStatus" class="badge">Esperando Pago...</span>
+    </div>
+
+    <div class="instructions">
+      ✨ <strong>Notificación interna en tu sistema:</strong> No usa notificaciones de Windows. El Toast se dibuja <strong>directamente dentro de la pantalla de tu sistema</strong> en la esquina inferior con sonido de confirmación, y se quita automáticamente.
+    </div>
+
+    <div class="order-details">
+      <div class="order-row">
+        <span>Producto 1: Almuerzo Ejecutivo x 2</span>
+        <strong>S/ 36.00</strong>
+      </div>
+      <div class="order-row">
+        <span>Bebida: Chicha Morada Jarra</span>
+        <strong>S/ 14.00</strong>
+      </div>
+      <div class="order-total">
+        <span>Total a Pagar:</span>
+        <span style="color: #742284;">S/ 50.00</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-test" onclick="testLocalToast()">
+        ⚡ Simular Yape de S/ 50.00 (Prueba Local)
+      </button>
+      <button class="btn" style="background: #e2e8f0; color: #334155;" onclick="testApiToast()">
+        🌐 Enviar Pago vía Servidor (Realtime)
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- ESTA ES LA LÍNEA QUE SE PEGA EN TU SISTEMA PARA ACTIVAR EL TOAST INTERNO  -->
+  <!-- ========================================================================= -->
+  <script src="/yape-toast.js" data-channel="tienda_principal" data-sound="true" data-position="bottom-right"></script>
+
+  <script>
+    // 1. Simulación instantánea usando la API del Toast
+    function testLocalToast() {
+      if (window.YapeToast) {
+        window.YapeToast.simulate(50.00, 'Juan Carlos Mendoza');
+      }
+    }
+
+    // 2. Simulación real enviando un POST al servidor Hub
+    async function testApiToast() {
+      try {
+        await fetch('/api/payments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: 50.00,
+            sender: 'Maria Teresa Quispe',
+            app: 'Yape',
+            channel: 'tienda_principal'
+          })
+        });
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    // 3. Escuchar el evento que emite el Toast para actualizar tu pantalla en tiempo real
+    window.addEventListener('yape:payment', function(e) {
+      const payment = e.detail;
+      const statusBadge = document.getElementById('orderStatus');
+      statusBadge.className = 'badge paid';
+      statusBadge.textContent = `¡PAGADO ${payment.formattedAmount}! (${payment.sender})`;
+    });
+  </script>
+</body>
+</html>

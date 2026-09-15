@@ -1,0 +1,19 @@
+{
+  "name": "yape-realtime-hub",
+  "version": "1.0.0",
+  "description": "Hub central en tiempo real para retransmitir notificaciones de Yape a cualquier dispositivo o sistema",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node tests/test-hub.js"
+  },
+  "keywords": ["yape", "realtime", "notifications", "websocket", "toast"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "ws": "^8.17.1"
+  }
+}

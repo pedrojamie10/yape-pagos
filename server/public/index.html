@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yape Real-Time Hub | Monitor de Cobros</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #742284;
+      --primary-hover: #5d176b;
+      --accent: #00D09C;
+      --accent-glow: rgba(0, 208, 156, 0.35);
+      --bg: #0F0E17;
+      --surface: #1B1926;
+      --surface-border: #2A273C;
+      --text: #FFFFFE;
+      --text-muted: #A7A9BE;
+      --danger: #FF5470;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      max-width: 1080px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--surface-border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--primary), #9B30B4);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 24px;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(116, 34, 132, 0.4);
+    }
+
+    .brand-text h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-text p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 208, 156, 0.12);
+      border: 1px solid rgba(0, 208, 156, 0.3);
+      color: var(--accent);
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.15); }
+      100% { opacity: 0.4; transform: scale(0.9); }
+    }
+
+    /* Grid de Estadísticas */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: transform 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .stat-value.highlight {
+      color: var(--accent);
+    }
+
+    /* Contenido Principal */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+    }
+
+    @media (max-width: 880px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 18px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .panel-title {
+      font-size: 17px;
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Lista de Pagos */
+    .payments-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 480px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .payments-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .payments-list::-webkit-scrollbar-thumb {
+      background: var(--surface-border);
+      border-radius: 6px;
+    }
+
+    .payment-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--surface-border);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      animation: fadeIn 0.3s ease;
+      transition: background 0.15s ease;
+    }
+
+    .payment-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .payment-item.new-entry {
+      border-color: var(--accent);
+      background: rgba(0, 208, 156, 0.05);
+    }
+
+    .payment-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .payment-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: rgba(116, 34, 132, 0.25);
+      color: #D38CF0;
+      border: 1px solid rgba(116, 34, 132, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .payment-badge.plin {
+      background: rgba(0, 163, 224, 0.25);
+      color: #64D2FF;
+      border-color: rgba(0, 163, 224, 0.5);
+    }
+
+    .payment-info h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .payment-info p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .payment-amount {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--accent);
+      text-align: right;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Simulador de Pruebas */
+    .simulator-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-control {
+      background: var(--bg);
+      border: 1px solid var(--surface-border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .form-control:focus {
+      border-color: var(--accent);
+    }
+
+    .quick-amounts {
+      display: flex;
+      gap: 8px;
+    }
+
+    .quick-btn {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--surface-border);
+      color: #fff;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .quick-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-submit {
+      background: linear-gradient(135deg, var(--accent), #00A67C);
+      color: #0d3b2f;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 16px var(--accent-glow);
+      transition: transform 0.15s ease, opacity 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      opacity: 0.95;
+    }
+
+    .btn-submit:active {
+      transform: translateY(0);
+    }
+
+    /* Integration Code Snippet */
+    .code-snippet {
+      background: #0b0a11;
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 14px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #79c0ff;
+      word-break: break-all;
+      position: relative;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        <div class="brand-logo">Y</div>
+        <div class="brand-text">
+          <h1>Yape Real-Time Hub</h1>
+          <p>Monitor y retransmisor de pagos en tiempo real</p>
+        </div>
+      </div>
+      <div id="statusBadge" class="status-badge">
+        <div class="status-dot"></div>
+        <span id="statusText">Conectado en Vivo</span>
+      </div>
+    </header>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Total Recaudado Hoy</span>
+        <span id="statTotal" class="stat-value highlight">S/ 0.00</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Pagos Registrados Hoy</span>
+        <span id="statCount" class="stat-value">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Canal Activo</span>
+        <span id="statChannel" class="stat-value" style="font-size: 20px; font-weight: 700;">tienda_principal</span>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="main-grid">
+      <!-- Live Payments List -->
+      <div class="panel">
+        <div class="panel-title">
+          <span>Cobros Recibidos en Vivo</span>
+          <button id="btnClear" style="background: transparent; border: 1px solid var(--surface-border); color: var(--text-muted); padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer;">Limpiar</button>
+        </div>
+        
+        <div id="paymentsList" class="payments-list">
+          <div class="empty-state">
+            Esperando el primer pago de Yape...<br>
+            Usa el simulador lateral o envía una notificación desde la app.
+          </div>
+        </div>
+      </div>
+
+      <!-- Simulator & Integration Info -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        <!-- Simulator Panel -->
+        <div class="panel">
+          <div class="panel-title">
+            <span>Simulador de Cobro</span>
+          </div>
+          <form id="simForm" class="simulator-form">
+            <div class="form-group">
+              <label>Monto (Soles)</label>
+              <input type="number" step="0.50" id="simAmount" class="form-control" value="25.00" required>
+            </div>
+            <div class="quick-amounts">
+              <button type="button" class="quick-btn" onclick="setAmount(5)">S/ 5</button>
+              <button type="button" class="quick-btn" onclick="setAmount(15)">S/ 15</button>
+              <button type="button" class="quick-btn" onclick="setAmount(30)">S/ 30</button>
+              <button type="button" class="quick-btn" onclick="setAmount(50)">S/ 50</button>
+            </div>
+            <div class="form-group">
+              <label>Nombre del Cliente</label>
+              <input type="text" id="simSender" class="form-control" value="Carlos Rodriguez" required>
+            </div>
+            <div class="form-group">
+              <label>Billetera</label>
+              <select id="simApp" class="form-control">
+                <option value="Yape">Yape</option>
+                <option value="Plin">Plin</option>
+              </select>
+            </div>
+            <button type="submit" class="btn-submit">
+              ⚡ Emitir Pago Instantáneo
+            </button>
+          </form>
+        </div>
+
+        <!-- Conectar Celulares Receptores -->
+        <div class="panel">
+          <div class="panel-title">
+            <span>📱 Celulares Receptores</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-muted);">
+            Escanea con cualquier celular (Android o iPhone) para abrir la app receptora al instante:
+          </p>
+          <div style="display: flex; align-items: center; gap: 16px; background: #0b0a11; border: 1px solid var(--surface-border); border-radius: 12px; padding: 16px;">
+            <img id="qrCodeImg" style="width: 110px; height: 110px; border-radius: 8px; background: #fff; padding: 4px;" alt="QR Celular">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 13px; font-weight: 700; color: var(--accent);">Acceso Móvil Inmediato</span>
+              <a id="mobileLink" href="/mobile.html" target="_blank" style="font-size: 12px; color: #79c0ff; word-break: break-all; text-decoration: none;">Cargando enlace...</a>
+              <span style="font-size: 11px; color: var(--text-muted);">
+                💡 En el celular: Presiona <strong>"Agregar a inicio"</strong> o <strong>"Instalar App"</strong> para usarlo como app nativa a pantalla completa con sonido.
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Web Integration Snippet -->
+        <div class="panel">
+          <div class="panel-title">
+            <span>Integrar Toast en tu Sistema</span>
+          </div>
+          <p style="font-size: 13px; color: var(--text-muted);">
+            Pega esta sola línea de código en cualquier página web o sistema POS para ver Toasts flotantes automáticos:
+          </p>
+          <div class="code-snippet">
+            &lt;script src="http://localhost:3000/yape-toast.js" data-channel="tienda_principal"&gt;&lt;/script&gt;
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Incluir el script de Toast universal en este mismo dashboard -->
+  <script src="/yape-toast.js" data-channel="tienda_principal" data-sound="true"></script>
+
+  <script>
+    const paymentsList = document.getElementById('paymentsList');
+    const statTotal = document.getElementById('statTotal');
+    const statCount = document.getElementById('statCount');
+    const simForm = document.getElementById('simForm');
+
+    function setAmount(val) {
+      document.getElementById('simAmount').value = val.toFixed(2);
+    }
+
+    // Actualizar vista de pago
+    function addPaymentToUI(payment, isNew = false) {
+      const emptyState = paymentsList.querySelector('.empty-state');
+      if (emptyState) {
+        paymentsList.removeChild(emptyState);
+      }
+
+      const isPlin = (payment.app || '').toLowerCase().includes('plin');
+      const timeStr = new Date(payment.timestamp || Date.now()).toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: true 
+      });
+
+      const item = document.createElement('div');
+      item.className = `payment-item ${isNew ? 'new-entry' : ''}`;
+      item.innerHTML = `
+        <div class="payment-left">
+          <div class="payment-badge ${isPlin ? 'plin' : ''}">${isPlin ? 'P' : 'Y'}</div>
+          <div class="payment-info">
+            <h4>${payment.sender || 'Cliente'}</h4>
+            <p>${payment.app || 'Yape'} &bull; ${timeStr}</p>
+          </div>
+        </div>
+        <div class="payment-amount">${payment.formattedAmount || `S/ ${payment.amount.toFixed(2)}`}</div>
+      `;
+
+      paymentsList.insertBefore(item, paymentsList.firstChild);
+    }
+
+    // Escuchar pagos en tiempo real capturados por el widget
+    window.addEventListener('yape:payment', (e) => {
+      const payment = e.detail;
+      addPaymentToUI(payment, true);
+      refreshStats();
+    });
+
+    // Cargar historial inicial y estadísticas
+    async function loadInitialData() {
+      try {
+        const res = await fetch('/api/payments');
+        const data = await res.json();
+        if (data.payments && data.payments.length > 0) {
+          paymentsList.innerHTML = '';
+          data.payments.forEach(p => addPaymentToUI(p, false));
+        }
+        if (data.stats) {
+          statTotal.textContent = data.stats.formattedTotal || `S/ ${data.stats.totalAmount.toFixed(2)}`;
+          statCount.textContent = data.stats.count;
+        }
+      } catch (err) {
+        console.error('Error cargando pagos iniciales:', err);
+      }
+    }
+
+    async function refreshStats() {
+      try {
+        const res = await fetch('/api/payments');
+        const data = await res.json();
+        if (data.stats) {
+          statTotal.textContent = data.stats.formattedTotal || `S/ ${data.stats.totalAmount.toFixed(2)}`;
+          statCount.textContent = data.stats.count;
+        }
+      } catch (e) {}
+    }
+
+    // Manejar envío del simulador
+    simForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const amount = parseFloat(document.getElementById('simAmount').value);
+      const sender = document.getElementById('simSender').value;
+      const app = document.getElementById('simApp').value;
+
+      try {
+        await fetch('/api/payments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount,
+            sender,
+            app,
+            channel: 'tienda_principal'
+          })
+        });
+      } catch (err) {
+        alert('Error al emitir pago: ' + err.message);
+      }
+    });
+
+    // Botón limpiar
+    document.getElementById('btnClear').addEventListener('click', async () => {
+      if (confirm('¿Deseas limpiar el historial visual?')) {
+        await fetch('/api/payments', { method: 'DELETE' });
+        paymentsList.innerHTML = '<div class="empty-state">Historial limpio. Esperando cobros...</div>';
+        statTotal.textContent = 'S/ 0.00';
+        statCount.textContent = '0';
+      }
+    });
+
+    loadInitialData();
+
+    // Generar URL y QR para celulares receptores
+    (function setupMobileAccess() {
+      const host = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? '192.168.0.168' 
+        : window.location.hostname;
+      const port = window.location.port ? `:${window.location.port}` : '';
+      const mobileUrl = `${window.location.protocol}//${host}${port}/mobile.html`;
+      
+      const mobileLink = document.getElementById('mobileLink');
+      const qrCodeImg = document.getElementById('qrCodeImg');
+
+      if (mobileLink) {
+        mobileLink.textContent = mobileUrl;
+        mobileLink.href = mobileUrl;
+      }
+      if (qrCodeImg) {
+        qrCodeImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(mobileUrl)}`;
+      }
+    })();
+  </script>
+</body>
+</html>
