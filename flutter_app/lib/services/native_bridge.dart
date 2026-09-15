@@ -8,7 +8,7 @@ class NativeBridge {
     try {
       final bool? enabled = await _channel.invokeMethod('isNotificationListenerEnabled');
       return enabled ?? false;
-    } on PlatformException {
+    } catch (e) {
       return false;
     }
   }
@@ -17,8 +17,8 @@ class NativeBridge {
   static Future<void> openNotificationListenerSettings() async {
     try {
       await _channel.invokeMethod('openNotificationListenerSettings');
-    } on PlatformException catch (e) {
-      print("Error abriendo ajustes: ${e.message}");
+    } catch (e) {
+      print("Error abriendo ajustes: $e");
     }
   }
 
@@ -26,8 +26,8 @@ class NativeBridge {
   static Future<void> requestIgnoreBatteryOptimizations() async {
     try {
       await _channel.invokeMethod('requestIgnoreBatteryOptimizations');
-    } on PlatformException catch (e) {
-      print("Error solicitando optimización de batería: ${e.message}");
+    } catch (e) {
+      print("Error solicitando optimización de batería: $e");
     }
   }
 
@@ -35,8 +35,12 @@ class NativeBridge {
   static void setNotificationHandler(Function(Map<String, dynamic>) handler) {
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'onNotificationReceived') {
-        final Map<String, dynamic> data = Map<String, dynamic>.from(call.arguments);
-        handler(data);
+        try {
+          final Map<String, dynamic> data = Map<String, dynamic>.from(call.arguments);
+          handler(data);
+        } catch (e) {
+          print("Error procesando notificación nativa: $e");
+        }
       }
     });
   }

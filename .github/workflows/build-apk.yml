@@ -39,13 +39,18 @@ jobs:
           EOF
           flutter pub get
 
-      - name: Compilar APK (Release)
+      - name: Compilar APKs (Debug y Release)
         run: |
           cd flutter_app
+          # Compilar Debug (con certificado universal que instala en cualquier teléfono sin bloqueos)
+          flutter build apk --debug
+          # Compilar Release
           flutter build apk --release
 
-      - name: Subir APK generado
+      - name: Subir APKs generados
         uses: actions/upload-artifact@v4
         with:
-          name: yape-sync-apk
-          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+          name: yape-sync-apks
+          path: |
+            flutter_app/build/app/outputs/flutter-apk/app-debug.apk
+            flutter_app/build/app/outputs/flutter-apk/app-release.apk
