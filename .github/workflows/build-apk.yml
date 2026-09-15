@@ -26,10 +26,17 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Inicializar y regenerar archivos Android de Flutter
+      - name: Configurar Gradle Wrapper a 8.7
         run: |
           cd flutter_app
-          flutter create . --platforms android --org com.yape
+          mkdir -p android/gradle/wrapper
+          cat << 'EOF' > android/gradle/wrapper/gradle-wrapper.properties
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-all.zip
+          EOF
           flutter pub get
 
       - name: Compilar APK (Release)
