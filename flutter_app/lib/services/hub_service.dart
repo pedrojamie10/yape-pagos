@@ -8,9 +8,8 @@ class HubService {
   static const String keyHubUrl = 'firebase_url';
   static const String keyChannel = 'channel_name';
 
-  // URL directa de Firebase Realtime Database
   static const String defaultFirebaseUrl = 'https://yape-pagos-td-default-rtdb.firebaseio.com';
-  static const String defaultChannel = 'tienda_principal';
+  static const String defaultChannel = 'mi_tienda_01';
 
   String firebaseUrl = defaultFirebaseUrl;
   String channel = defaultChannel;
@@ -21,19 +20,17 @@ class HubService {
     channel = prefs.getString(keyChannel) ?? defaultChannel;
   }
 
-  Future<void> updateConfig({required String newUrl, required String newChannel}) async {
-    firebaseUrl = newUrl.trim().replaceAll(RegExp(r'/+$'), '').replaceAll('/pagos.json', '');
-    channel = newChannel.trim();
-
+  Future<void> updateChannel(String newChannel) async {
+    final clean = newChannel.trim().replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
+    channel = clean.isEmpty ? defaultChannel : clean;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(keyHubUrl, firebaseUrl);
     await prefs.setString(keyChannel, channel);
   }
 
-  /// Envía un pago directo a Firebase Realtime Database (Vía 4G/5G/Wi-Fi mundial)
+  /// Envía un pago a la carpeta específica de este negocio en Firebase
   Future<bool> sendPayment(PaymentNotification payment) async {
     final cleanBase = firebaseUrl.replaceAll(RegExp(r'/+$'), '');
-    final endpoint = Uri.parse('$cleanBase/pagos.json');
+    final endpoint = Uri.parse('$cleanBase/negocios/$channel/pagos.json');
 
     try {
       final response = await http.post(
@@ -56,6 +53,27 @@ class HubService {
     } catch (e) {
       return false;
     }
+  }
+
+  /// Obtiene los últimos pagos del canal/negocio específico
+  Future<List<PaymentNotification>> fetchPayments() async {
+    final cleanBase = firebaseUrl.replaceAll(RegExp(r'/+$'), '');
+    final endpoint = Uri.parse('$cleanBase/negocios/$channel/pagos.json?orderBy="\$key"&limitToLast=15');
+
+    try {
+      final res = await http.get(endpoint).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200 && res.body != 'null') {
+        final Map<String, dynamic> data = jsonDecode(res.body);
+        final List<PaymentNotification> list = [];
+        data.forEach((k, v) {
+          if (v is Map<String, dynamic>) {
+            list.add(PaymentNotification.fromJson(v));
+          }
+        });
+        return list.reversed.toList();
+      }
+    } catch (_) {}
+    return [];
   }
 
   /// Verifica si Firebase responde

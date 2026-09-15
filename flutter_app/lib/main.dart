@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'models/payment_notification.dart';
 import 'services/yape_parser.dart';
@@ -107,7 +105,6 @@ class _MainScreenState extends State<MainScreen> {
       }
     });
 
-    // Iniciar escucha en tiempo real de Firebase si es RECEPTOR
     _startReceiverSync();
   }
 
@@ -120,48 +117,28 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  // Sincronizador en tiempo real con Firebase para el modo Receptor
   void _startReceiverSync() {
     _receiverPollingTimer?.cancel();
-    // Consulta periódica ligera a Firebase para actualizar nuevos cobros
     _receiverPollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
       if (_currentRole != AppRole.receptor) return;
-      await _fetchFirebasePayments();
+      await _fetchRemotePayments();
     });
   }
 
-  Future<void> _fetchFirebasePayments() async {
-    try {
-      final cleanBase = _hubService.firebaseUrl.replaceAll(RegExp(r'/+$'), '');
-      final res = await http.get(
-        Uri.parse('$cleanBase/pagos.json?orderBy="\$key"&limitToLast=10'),
-      ).timeout(const Duration(seconds: 3));
-
-      if (res.statusCode == 200 && res.body != 'null') {
-        final Map<String, dynamic> data = jsonDecode(res.body);
-        final List<PaymentNotification> remotePayments = [];
-
-        data.forEach((key, val) {
-          if (val is Map<String, dynamic>) {
-            final payment = PaymentNotification.fromJson(val);
-            remotePayments.add(payment);
-          }
-        });
-
-        // Detectar si hay pagos nuevos que no teníamos
-        for (final p in remotePayments.reversed) {
-          final alreadyExists = _payments.any((item) => item.id == p.id || (item.amount == p.amount && item.sender == p.sender));
-          if (!alreadyExists) {
-            setState(() {
-              _payments.insert(0, p.copyWith(isSynced: true));
-            });
-            // Alerta sensorial en el receptor
-            HapticFeedback.heavyImpact();
-            _showIncomingPaymentAlert(p);
-          }
+  Future<void> _fetchRemotePayments() async {
+    final remote = await _hubService.fetchPayments();
+    if (remote.isNotEmpty) {
+      for (final p in remote) {
+        final already = _payments.any((x) => x.id == p.id || (x.amount == p.amount && x.sender == p.sender));
+        if (!already) {
+          setState(() {
+            _payments.insert(0, p.copyWith(isSynced: true));
+          });
+          HapticFeedback.heavyImpact();
+          _showIncomingPaymentAlert(p);
         }
       }
-    } catch (_) {}
+    }
   }
 
   void _showIncomingPaymentAlert(PaymentNotification p) {
@@ -185,15 +162,94 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  void _openChangeChannelDialog() {
+    final controller = TextEditingController(text: _hubService.channel);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1B1926),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(
+              _currentRole == AppRole.emisor ? Icons.store : Icons.link,
+              color: const Color(0xFF00D09C),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              _currentRole == AppRole.emisor ? 'Código de tu Tienda' : 'Vincular a Tienda',
+              style: const TextStyle(color: Colors.white, fontSize: 18),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _currentRole == AppRole.emisor
+                  ? 'Define el identificador de tu negocio. Solo los celulares o sistemas con este código recibirán tus Yapes:'
+                  : 'Ingresa el código del negocio del cual quieres recibir los pagos en tiempo real:',
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                hintText: 'Ej: mi_tienda_01',
+                hintStyle: const TextStyle(color: Colors.white30),
+                filled: true,
+                fillColor: const Color(0xFF0F0E17),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF00D09C)),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00D09C),
+              foregroundColor: const Color(0xFF0D3B2F),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              if (controller.text.trim().isNotEmpty) {
+                await _hubService.updateChannel(controller.text.trim());
+                setState(() {
+                  _payments.clear();
+                });
+                if (_currentRole == AppRole.receptor) {
+                  _fetchRemotePayments();
+                }
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _simulatePayment() async {
     final payment = PaymentNotification(
       id: 'sim_${DateTime.now().millisecondsSinceEpoch}',
       app: 'Yape',
-      amount: 30.00,
-      formattedAmount: 'S/ 30.00',
+      amount: 25.00,
+      formattedAmount: 'S/ 25.00',
       sender: 'Carlos Rodriguez',
       rawTitle: '¡Te yapearon!',
-      rawText: 'S/ 30.00 de Carlos Rodriguez',
+      rawText: 'S/ 25.00 de Carlos Rodriguez',
       timestamp: DateTime.now(),
     );
 
@@ -205,7 +261,7 @@ class _MainScreenState extends State<MainScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(synced 
-          ? '✅ Pago guardado en Firebase en la nube' 
+          ? '✅ Pago emitido en sala: ${_hubService.channel}' 
           : '⚠️ Error enviando a Firebase (Revisar conexión a internet)'),
         backgroundColor: synced ? const Color(0xFF00D09C) : Colors.orange,
       ),
@@ -234,7 +290,7 @@ class _MainScreenState extends State<MainScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: () {
               _checkStatus();
-              if (_currentRole == AppRole.receptor) _fetchFirebasePayments();
+              if (_currentRole == AppRole.receptor) _fetchRemotePayments();
             },
           ),
         ],
@@ -280,7 +336,7 @@ class _MainScreenState extends State<MainScreen> {
                     borderRadius: const BorderRadius.horizontal(right: Radius.circular(14)),
                     onTap: () {
                       setState(() => _currentRole = AppRole.receptor);
-                      _fetchFirebasePayments();
+                      _fetchRemotePayments();
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -305,7 +361,11 @@ class _MainScreenState extends State<MainScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+
+          // Tarjeta de Identificación de Negocio / Canal
+          _buildChannelCard(),
+          const SizedBox(height: 14),
 
           // Estado del Emisor o Receptor
           if (_currentRole == AppRole.emisor)
@@ -315,7 +375,7 @@ class _MainScreenState extends State<MainScreen> {
 
           const SizedBox(height: 16),
 
-          // Tarjeta de Resumen
+          // Resumen de Total
           _buildSummaryCard(totalAmount),
           const SizedBox(height: 16),
 
@@ -329,7 +389,12 @@ class _MainScreenState extends State<MainScreen> {
             ),
             onPressed: _simulatePayment,
             icon: const Icon(Icons.send_rounded),
-            label: const Text('Probar Notificación de Pago', style: TextStyle(fontWeight: FontWeight.bold)),
+            label: Text(
+              _currentRole == AppRole.emisor
+                  ? 'Simular Envío de Pago (Prueba)'
+                  : 'Probar Sonido y Alerta',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
           const SizedBox(height: 20),
 
@@ -348,7 +413,7 @@ class _MainScreenState extends State<MainScreen> {
 
           if (_payments.isEmpty)
             Container(
-              padding: const EdgeInsets.all(36),
+              padding: const EdgeInsets.all(32),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
@@ -356,14 +421,61 @@ class _MainScreenState extends State<MainScreen> {
               ),
               child: Text(
                 _currentRole == AppRole.emisor
-                    ? 'Esperando que llegue un Yape a este celular...\nCualquier notificación se enviará automáticamente a Firebase.'
-                    : 'Modo Receptor Activo.\nCualquier pago que entre en el celular con Yape sonará aquí en tiempo real.',
+                    ? 'Esperando pagos de Yape en este teléfono...\nSe enviarán a la sala: "${_hubService.channel}".'
+                    : 'Modo Receptor activo en sala: "${_hubService.channel}".\nCualquier pago que entre sonará aquí al instante.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.grey, height: 1.4),
               ),
             )
           else
             ..._payments.map((p) => _buildPaymentItem(p)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChannelCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1B1926),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF742284).withOpacity(0.5)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _currentRole == AppRole.emisor ? Icons.storefront : Icons.phonelink,
+            color: const Color(0xFF00D09C),
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _currentRole == AppRole.emisor ? 'Código de tu Negocio:' : 'Conectado a la Tienda:',
+                  style: const TextStyle(fontSize: 11, color: Colors.white60),
+                ),
+                Text(
+                  _hubService.channel,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF00D09C)),
+                ),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.white10,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            icon: const Icon(Icons.edit, size: 14),
+            label: const Text('CAMBIAR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            onPressed: _openChangeChannelDialog,
+          ),
         ],
       ),
     );
@@ -407,13 +519,13 @@ class _MainScreenState extends State<MainScreen> {
             ],
           ),
           const Divider(height: 20, color: Colors.white10),
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.cloud_done, color: Color(0xFF00D09C)),
-              const SizedBox(width: 10),
-              const Expanded(
+              Icon(Icons.cloud_done, color: Color(0xFF00D09C)),
+              SizedBox(width: 10),
+              Expanded(
                 child: Text(
-                  'Conectado a Firebase en la Nube (4G/5G/Wi-Fi)',
+                  'Conectado a Firebase en la Nube (4G/5G)',
                   style: TextStyle(fontSize: 13),
                 ),
               ),
@@ -428,25 +540,25 @@ class _MainScreenState extends State<MainScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF00D09C).withOpacity(0.1),
+        color: const Color(0xFF00D09C).withOpacity(0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF00D09C).withOpacity(0.4)),
+        border: Border.all(color: const Color(0xFF00D09C).withOpacity(0.3)),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.notifications_active, color: Color(0xFF00D09C), size: 28),
-          SizedBox(width: 12),
+          const Icon(Icons.notifications_active, color: Color(0xFF00D09C), size: 28),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Modo Cajero / Receptor Activo',
+                const Text(
+                  'Modo Receptor / Cajero Activo',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF00D09C)),
                 ),
                 Text(
-                  'Escuchando pagos de Yape en tiempo real desde la nube.',
-                  style: TextStyle(fontSize: 12, color: Colors.white70),
+                  'Recibiendo cobros de la sala "${_hubService.channel}".',
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
                 ),
               ],
             ),

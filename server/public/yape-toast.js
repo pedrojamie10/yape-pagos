@@ -12,12 +12,13 @@
   const position = (currentScript && currentScript.getAttribute('data-position')) || 'bottom-right';
   const enableSound = (currentScript && currentScript.getAttribute('data-sound')) !== 'false';
   
+  const channel = (currentScript && currentScript.getAttribute('data-channel')) || 'mi_tienda_01';
   const filterClienteId = (currentScript && currentScript.getAttribute('data-cliente-id')) || null;
   const filterUsuarioId = (currentScript && currentScript.getAttribute('data-usuario-id')) || null;
 
-  // Limpiar URL base
+  // Limpiar URL base y apuntar al canal del negocio
   const cleanBaseUrl = firebaseUrl.replace(/\/+$/, '').replace(/\.json$/, '');
-  const sseUrl = `${cleanBaseUrl}/pagos.json`;
+  const sseUrl = `${cleanBaseUrl}/negocios/${channel}/pagos.json`;
 
   // Estilos CSS
   const styleEl = document.createElement('style');
@@ -334,9 +335,9 @@
         sender: sender,
         timestamp: new Date().toISOString()
       };
-      // Enviar directamente a Firebase
+      // Enviar directamente a Firebase en la sala del negocio
       try {
-        await fetch(`${cleanBaseUrl}/pagos.json`, {
+        await fetch(`${cleanBaseUrl}/negocios/${channel}/pagos.json`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(paymentData)
